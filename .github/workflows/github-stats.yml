@@ -34,8 +34,8 @@ jobs:
       - name: Run ${{ matrix.command }}
         run: yarn start ${{ matrix.command }}
         env:
-          GITHUB_AUTH_TOKEN: ${{ secrets.GITHUB_AUTH_TOKEN }}
-          GITHUB_ORG: ${{ secrets.GITHUB_ORG }}
-          GITHUB_ENTERPRISE: ${{ secrets.GITHUB_ENTERPRISE }}
+          X_GITHUB_AUTH_TOKEN: ${{ secrets.X_GITHUB_AUTH_TOKEN }}
+          X_GITHUB_ORG: ${{ secrets.X_GITHUB_ORG }}
+          X_GITHUB_ENTERPRISE: ${{ secrets.X_GITHUB_ENTERPRISE }}
           PORT_CLIENT_ID: ${{ secrets.PORT_CLIENT_ID }}
           PORT_CLIENT_SECRET: ${{ secrets.PORT_CLIENT_SECRET }}

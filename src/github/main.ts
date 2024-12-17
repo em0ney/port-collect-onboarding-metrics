@@ -131,14 +131,14 @@ async function getDeveloperStats(
 }
 
 async function main() {
-  const ORG_NAME = process.env.GITHUB_ORG;
-  const ENTERPRISE_NAME = process.env.GITHUB_ENTERPRISE;
-  const AUTH_TOKEN = process.env.GITHUB_AUTH_TOKEN;
+  const ORG_NAME = process.env.X_GITHUB_ORG;
+  const ENTERPRISE_NAME = process.env.X_GITHUB_ENTERPRISE;
+  const AUTH_TOKEN = process.env.X_GITHUB_AUTH_TOKEN;
   const PORT_CLIENT_ID = process.env.PORT_CLIENT_ID;
   const PORT_CLIENT_SECRET = process.env.PORT_CLIENT_SECRET;
 
   if (!ORG_NAME || !AUTH_TOKEN) {
-    console.log('Please provide env vars GITHUB_ORG and GITHUB_AUTH_TOKEN');
+    console.log('Please provide env vars X_GITHUB_ORG and X_GITHUB_AUTH_TOKEN');
     process.exit(0);
   }
 
