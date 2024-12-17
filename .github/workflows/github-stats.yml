@@ -1,0 +1,41 @@
+name: GitHub Stats Collection
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+  workflow_dispatch:      # Allows manual trigger
+
+jobs:
+  collect-stats:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        command: ['get-member-join-dates', 'get-developer-stats']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: actions/setup-node@v4
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Run ${{ matrix.command }}
+        run: yarn start ${{ matrix.command }}
+        env:
+          GITHUB_AUTH_TOKEN: ${{ secrets.GITHUB_AUTH_TOKEN }}
+          GITHUB_ORG: ${{ secrets.GITHUB_ORG }}
+          GITHUB_ENTERPRISE: ${{ secrets.GITHUB_ENTERPRISE }}
+          PORT_CLIENT_ID: ${{ secrets.PORT_CLIENT_ID }}
+          PORT_CLIENT_SECRET: ${{ secrets.PORT_CLIENT_SECRET }}

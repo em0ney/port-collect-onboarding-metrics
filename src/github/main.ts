@@ -1,5 +1,6 @@
 import { Octokit } from '@octokit/rest';
 import { Command } from 'commander';
+import { getEntities, upsertEntity } from '../port_client';
 
 interface DeveloperStats {
   login: string;
@@ -44,8 +45,7 @@ async function getMemberAddDates(
     }
   });
 
-  console.log(response.data);
-  return response.data;
+  return response.data.map(x => ({ user: x.user, userId: x.user_id, createdAt: x.created_at }));;
 }
 
 async function getDeveloperStats(
@@ -134,13 +134,25 @@ async function main() {
   const ORG_NAME = process.env.GITHUB_ORG;
   const ENTERPRISE_NAME = process.env.GITHUB_ENTERPRISE;
   const AUTH_TOKEN = process.env.GITHUB_AUTH_TOKEN;
+  const PORT_CLIENT_ID = process.env.PORT_CLIENT_ID;
+  const PORT_CLIENT_SECRET = process.env.PORT_CLIENT_SECRET;
 
   if (!ORG_NAME || !AUTH_TOKEN) {
     console.log('Please provide env vars GITHUB_ORG and GITHUB_AUTH_TOKEN');
     process.exit(0);
   }
+
+  if (!PORT_CLIENT_ID || !PORT_CLIENT_SECRET) {
+    console.log('Please provide env vars PORT_CLIENT_ID and PORT_CLIENT_SECRET');
+    process.exit(0);
+  }
+
   try {
     // TODO - get the right users from port (no point fetching non-users)
+
+    await checkRateLimits(AUTH_TOKEN);
+    const githubUsers = await getEntities('githubUser');
+    console.log(githubUsers);
 
     const program = new Command();
 
@@ -152,14 +164,36 @@ async function main() {
       .command('get-member-join-dates')
       .description('Get member add dates for a GitHub enterprise')
       .action(async () => {
-        await checkRateLimits(AUTH_TOKEN);
         if (!ENTERPRISE_NAME) {
           console.error('Please provide GITHUB_ENTERPRISE env var');
           process.exit(1);
         }
-        const memberDates = await getMemberAddDates(ENTERPRISE_NAME, AUTH_TOKEN);
-        console.table(memberDates);
-        // TODO - write the data to port 
+        const joinRecords = await getMemberAddDates(ENTERPRISE_NAME, AUTH_TOKEN);
+        console.log(joinRecords);
+
+        // write the data to port 
+        for (const user of githubUsers.entities) {
+          const joinDate = joinRecords.find(record => record.user === user.identifier)?.createdAt;
+          
+          if (joinDate) {
+            try {
+              console.log(`attempting to update ${user.identifier}`);
+              await upsertEntity(
+                'githubUser',
+                user.identifier,
+                user.title,
+                {
+                  ...user.properties,
+                  join_date: new Date(joinDate)
+                },
+                user.relations
+              );
+              console.log(`Updated join date for user ${user.identifier}`);
+            } catch (error) {
+              console.error(`Failed to update user ${user.identifier}:`, error);
+            }
+          }
+        }
       });
 
     program
@@ -170,6 +204,39 @@ async function main() {
         const stats = await getDeveloperStats(ORG_NAME, AUTH_TOKEN);
         console.table(stats);
         // TODO - write the data to port 
+        for (const user of githubUsers.entities) {
+          const { firstCommitDate, firstPRDate } = stats.find(record => record.login === user.identifier) || {};
+          
+          const props = {};
+          if (!firstCommitDate && !firstPRDate) {
+            continue;
+          }
+          
+          if (firstCommitDate) {
+            props['first_commit'] = new Date(firstCommitDate);
+          }
+
+          if (firstPRDate) {
+            props['first_pr'] = new Date(firstPRDate);
+          }
+
+          try {
+            console.log(`attempting to update ${user.identifier}`);
+            await upsertEntity(
+              'githubUser',
+              user.identifier,
+              user.title,
+              {
+                ...user.properties,
+                ...props
+              },
+              user.relations
+            );
+            console.log(`Updated first commit and PR dates for user ${user.identifier}`);
+          } catch (error) {
+            console.error(`Failed to update user ${user.identifier}:`, error);
+          }
+        }
       });
 
     await program.parseAsync();

@@ -1,9 +1,14 @@
 {
   "dependencies": {
     "@octokit/rest": "^21.0.2",
-    "commander": "^12.1.0"
+    "axios": "^1.7.9",
+    "commander": "^12.1.0",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@types/node": "^22.10.2"
+  },
+  "scripts":{
+    "start": "bun src/github/main.ts"
   }
 }
